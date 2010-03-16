@@ -1,0 +1,24 @@
+<QPackage>
+	<info>
+		<name></name>
+		<domain></domain>
+		<version></version>
+		<dependencies>
+			<dependency domain='openvapps.ort' name='pymonkey' minversion='3.0' maxversion='3.0'/>
+		</dependencies>
+	</info>
+	<installation>
+		<pre-install>
+			<configure qconfig='qpackageserver' input-handling='$confiure.SKIP_EXIST'>
+				<input type='text' name='username'>
+					<validators>
+						<validator type='regex'>
+							<option name='pattern'>.+</option>
+						</validator>
+					</validators>
+				</input>
+			</configure>
+			
+		</pre-install>
+	</installation>
+</QPackage>
