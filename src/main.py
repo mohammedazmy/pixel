@@ -40,24 +40,19 @@ class Main(XmlElement):
     packages = collection(Package)
     
 def main():
-    """ Test code """
-    
-    
-    pass
-    
-    
-#    sax.parseString(
-#"""
-#<main>
-#    <info>
-#        <name>Mohammed Azmy</name>
-#        <age>27</age>
-#    </info>
-#    <elements>
-#        <Element name='name'>Azmy</Element>
-#        <Element name='age'/>
-#    </elements>
-#</main>""", MyHandler())
+    """ Test code """    
+    sax.parseString(
+"""
+<main>
+    <info>
+        <name>Mohammed Azmy</name>
+        <age>27</age>
+    </info>
+    <elements>
+        <Element name='name' data='fuck'>Azmy</Element>
+        <Element name='age'/>
+    </elements>
+</main>""", MyHandler())
     
 
 if __name__ == "__main__":

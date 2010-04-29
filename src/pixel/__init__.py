@@ -1,1 +1,1 @@
-__all__ = ['xmlelement']
+__all__ = ['xmlelement', 'pixel']

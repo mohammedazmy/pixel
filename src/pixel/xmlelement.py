@@ -4,27 +4,7 @@ Created on Mar 15, 2010
 @author: Mohamed Azmy
 '''
 from errors import SchemaError
-
-class TypedList(list):
-    def __init__(self, t):
-        list.__init__(self)
-        self.__t = t
-    
-    @property
-    def type(self):
-        return self.__t
-    
-    def append(self, obj):
-        if not isinstance(obj, self.type):
-            raise RuntimeError("Invalid type, expecting '%s'" % self.type)
-        list.append(self, obj)
-    
-    def insert(self, index, obj):
-        if not isinstance(obj, self.type):
-            raise RuntimeError("Invalid type, expecting '%s'" % self.type)
-        list.insert(self, index, obj)
-        
-
+_BASETYPES = [str, int, float]
 
 class element(object):
     def __init__(self, t):
@@ -41,14 +21,24 @@ class element(object):
         return self.type()
 
 class attribute(element):
-    pass
+    def __init__(self, t):
+        if t not in _BASETYPES:
+            raise SchemaError("Attributes must be a str, int or float")
+        element.__init__(self, t)
 
 class collection(element):
+    def __init__(self, t):
+        if not isinstance(t, XmlElementMeta):
+            raise SchemaError("Expecting an XmlElement")
+        
+        element.__init__(self, t)
+        
     def getInstance(self):
         return TypedList(self.type)
 
 class Schema(object):
-    def __init__(self, baseschemas=(), **args):
+    def __init__(self, classname, baseschemas=(), **args):
+        self.__classname = classname
         self.__attrs = {}
         self.__elements = {}
         
@@ -72,8 +62,61 @@ class Schema(object):
     @property
     def elements(self):
         return self.__elements
+    
+    @property
+    def classname(self):
+        return self.__classname
+    
+    def toxml(self, obj, elname=None):
+        elname = elname if elname else self.classname.lower()
+        s = "<%s%s>" % (elname, " ".join(['%s="%s"' % (att, getattr(obj, att)) for att in self.attributes.keys()]) if self.elements else "")
+        for elementName, element in self.elements.iteritems():
+            if not hasattr(obj, elementName):
+                raise SchemaError("Object doesn't have attribute '%s'" % elementName);
+            
+            elval = getattr(obj, elementName)
+            if element.type in _BASETYPES:
+                s += "<%(cname)s>%(val)s</%(cname)s>" % {'cname': elementName, 'val': elval}
+            else:
+                s += elval._schema.toxml(elval, elementName)
+        s += "</%s>" % elname
+        return s
 
-
+class TypedListSchema(Schema):
+    def __init__(self):
+        Schema.__init__(self, "TypedList", [])
+    
+    def toxml(self, obj, elname):
+        if not isinstance(obj, TypedList):
+            raise SchemaError("Object not of type 'TypedList'")
+        
+        s = "<%s>" % elname
+        for e in obj:
+            s += e._schema.toxml(e) 
+        s += "</%s>" % elname
+        return s
+        
+class TypedList(list):
+    _schema = TypedListSchema()
+    
+    def __init__(self, t):
+        list.__init__(self)
+        self.__t = t
+    
+    @property
+    def type(self):
+        return self.__t
+    
+    def append(self, obj):
+        if not isinstance(obj, self.type):
+            raise RuntimeError("Invalid type, expecting '%s'" % self.type)
+        list.append(self, obj)
+    
+    def insert(self, index, obj):
+        if not isinstance(obj, self.type):
+            raise RuntimeError("Invalid type, expecting '%s'" % self.type)
+        list.insert(self, index, obj)
+        
 class XmlElementMeta(type):
     def __new__(cls, classname, bases, classDict):
         toinit = {}
@@ -106,19 +149,7 @@ class XmlElementMeta(type):
             if isinstance(base, XmlElementMeta):
                 baseschemas.append(base._schema)
         
-        classDict['_schema'] = Schema(baseschemas, **toinit)
-        
-        #setting up the __str__ method.
-        def _str(self):
-            s = "<%s%s>\n" % (classname, " ".join(["%s='%s'" % (n, getattr(self, n)) for n in self._schema.attributes.keys()]))
-            for elemname, elem in self._schema.elements.iteritem():
-                if isinstance(elem, collection):
-                    pass
-                else:
-                    pass
-                
-            s += "<%s>\n" % classname
-        
+        classDict['_schema'] = Schema(classname, baseschemas, **toinit)
         return type.__new__(cls, classname, bases, classDict)
 
 class XmlElement(object):
@@ -126,3 +157,7 @@ class XmlElement(object):
     
     def __init__(self):
         pass
+
+    def __str__(self):
+        return self._schema.toxml(self)
+    
