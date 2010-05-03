@@ -6,3 +6,7 @@ Created on Mar 15, 2010
 
 class SchemaError(Exception):
     pass
+
+class XmlLoadError(SchemaError):
+    pass
+

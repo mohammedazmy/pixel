@@ -7,24 +7,37 @@ from errors import SchemaError
 _BASETYPES = [str, int, float]
 
 class element(object):
-    def __init__(self, t):
+    def __init__(self, t, optional=False):
         if not isinstance(t, type):
             raise SchemaError("Expecting type")
         
         self.__t = t
+        self.__optional = optional
+        self.__primitive = t in _BASETYPES
+        
+    @property
+    def primitive(self):
+        return self.__primitive
+    
+    @property
+    def optional(self):
+        return self.__optional
     
     @property
     def type(self):
         return self.__t
     
-    def getInstance(self):
-        return self.type()
+    def getInstance(self, *args, **kargs):
+        if self.primitive:
+            return PrimitiveXmlElement(self.type)
+        else:
+            return self.type(*args, **kargs)
 
 class attribute(element):
-    def __init__(self, t):
-        if t not in _BASETYPES:
+    def __init__(self, t, optional=False):
+        element.__init__(self, t, optional)
+        if not self.primitive:
             raise SchemaError("Attributes must be a str, int or float")
-        element.__init__(self, t)
 
 class collection(element):
     def __init__(self, t):
@@ -32,8 +45,8 @@ class collection(element):
             raise SchemaError("Expecting an XmlElement")
         
         element.__init__(self, t)
-        
-    def getInstance(self):
+    
+    def getInstance(self,*args, **kargs):
         return TypedList(self.type)
 
 class Schema(object):
@@ -75,10 +88,7 @@ class Schema(object):
                 raise SchemaError("Object doesn't have attribute '%s'" % elementName);
             
             elval = getattr(obj, elementName)
-            if element.type in _BASETYPES:
-                s += "<%(cname)s>%(val)s</%(cname)s>" % {'cname': elementName, 'val': elval}
-            else:
-                s += elval._schema.toxml(elval, elementName)
+            s += elval.__str__(elementName)
         s += "</%s>" % elname
         return s
 
@@ -116,7 +126,10 @@ class TypedList(list):
         if not isinstance(obj, self.type):
             raise RuntimeError("Invalid type, expecting '%s'" % self.type)
         list.insert(self, index, obj)
-        
+    
+    def __str__(self, elementName):
+        return self._schema.toxml(self, elementName)
+    
 class XmlElementMeta(type):
     def __new__(cls, classname, bases, classDict):
         toinit = {}
@@ -154,10 +167,25 @@ class XmlElementMeta(type):
 
 class XmlElement(object):
     __metaclass__ = XmlElementMeta
-    
-    def __init__(self):
-        pass
 
-    def __str__(self):
-        return self._schema.toxml(self)
+    def __str__(self, elementName=None):
+        return self._schema.toxml(self, elementName)
+
+class PrimitiveXmlElement(XmlElement):
+    def __init__(self, t, *args):
+        self.__type = t
+        self.__value = t(*args)
     
+    @property
+    def type(self):
+        return self.__type
+    
+    def __getValue(self):
+        return self.__value
+    def __setValue(self, v):
+        self.__value = self.__type(v)
+    
+    value = property(__getValue, __setValue)
+    
+    def __str__(self, elementName):
+        return "<%(elname)s>%(elvalue)s</%(elname)s>" % {'elname': elementName, 'elvalue': self.value}

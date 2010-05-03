@@ -8,8 +8,9 @@ class MyHandler(sax.ContentHandler):
     
     def startElement(self, name, attrs):
         print "Start element %s" % name
-        for item in attrs.items():
-            print item
+        
+        for attname, attvalue in attrs.items():
+            print attname, ": ", attvalue
     
     def endElement(self, name):
         print "End element %s" % name
@@ -20,11 +21,18 @@ class MyHandler(sax.ContentHandler):
     def endDocument(self):
         print "End Document"
 
+    def characters(self, contents):
+        print contents
+        
 
 class Info(XmlElement):
     name = element(str)
     age = element(int)
 
+class Data(Info):
+    address = element(str)
+    location = element(Info)
+    
 class File(XmlElement):
     path = element(str)
     size = element(int)
@@ -37,7 +45,13 @@ class Package(XmlElement):
     
 class Main(XmlElement):
     info = element(Info)
+    data = element(Data)
     packages = collection(Package)
+    
+
+class Property(XmlElement):
+    key = element(str)
+    value = element(str)
     
 def main():
     """ Test code """    
@@ -49,7 +63,7 @@ def main():
         <age>27</age>
     </info>
     <elements>
-        <Element name='name' data='fuck'>Azmy</Element>
+        <Element name='name' data='ag'>Azmy</Element>
         <Element name='age'/>
     </elements>
 </main>""", MyHandler())
