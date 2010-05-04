@@ -25,17 +25,23 @@ class PixelHandler(sax.ContentHandler):
             self.obj = obj
         else:
             parent = self.stack[len(self.stack) - 1] # last object
-            if name not in parent._schema.elements:
+            #TODO: Very dirty using hardcoded names
+            if parent._schema.classname == "TypedList":
+                obj = parent.type()
+                parent.append(obj)
+            elif name not in parent._schema.elements:
                 raise SchemaError("Object of type '%s' doesn't have child object '%s'" % (type(parent),name))
-            obj = getattr(parent, name)
+            else:
+                obj = getattr(parent, name)
             
         for attr_name, attr_element in obj._schema.attributes.iteritems():
             if not attr_element.optional and attr_name not in attrs:
                 raise XmlLoadError("Missing required attribute '%s' on element '%s'" % (attr_name, name))
-            attr_val = attr_element.getInstance(attrs[attr_name])
+            attr_val = attrs[attr_name]
             if not hasattr(obj, attr_name):
                 raise SchemaError("Object of type '%s' doesn't have attribute '%s'" % (type(obj), attr_name))
-            setattr(obj, attr_name, attr_val)
+            attr = getattr(obj, attr_name)
+            attr.value = attr_val
             
         self.stack.append(obj)
     
