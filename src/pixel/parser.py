@@ -54,7 +54,7 @@ class PixelHandler(sax.ContentHandler):
         self.stack = []
     
     def endDocument(self):
-        print self.obj
+        pass
     
     def characters(self, data):
         obj = self.stack[len(self.stack) - 1]

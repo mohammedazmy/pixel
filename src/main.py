@@ -2,29 +2,6 @@
 from xml import sax
 from pixel.xmlelement import XmlElement, element, collection, attribute
 
-class MyHandler(sax.ContentHandler):
-    def __init__(self):
-        sax.ContentHandler.__init__(self)
-    
-    def startElement(self, name, attrs):
-        print "Start element %s" % name
-        
-        for attname, attvalue in attrs.items():
-            print attname, ": ", attvalue
-    
-    def endElement(self, name):
-        print "End element %s" % name
-        
-    def startDocument(self):
-        print "Start Document"
-    
-    def endDocument(self):
-        print "End Document"
-
-    def characters(self, contents):
-        print contents
-        
-
 class Info(XmlElement):
     name = element(str)
     age = element(int)
@@ -54,19 +31,7 @@ class Property(XmlElement):
     value = element(str)
     
 def main():
-    """ Test code """    
-    sax.parseString(
-"""
-<main>
-    <info>
-        <name>Mohammed Azmy</name>
-        <age>27</age>
-    </info>
-    <elements>
-        <Element name='name' data='ag'>Azmy</Element>
-        <Element name='age'/>
-    </elements>
-</main>""", MyHandler())
+    pass
     
 
 if __name__ == "__main__":

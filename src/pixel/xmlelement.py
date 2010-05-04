@@ -4,6 +4,8 @@ Created on Mar 15, 2010
 @author: Mohamed Azmy
 '''
 from errors import SchemaError
+import functools
+
 _BASETYPES = [str, int, float]
 
 class element(object):
@@ -147,15 +149,20 @@ class XmlElementMeta(type):
         def init(self, *args, **kargs):
             """overrides the default class init funcion"""
             for name, factoryElement in self._schema.elements.iteritems():
-                setattr(self, name, factoryElement.getInstance())
+                setattr(self, "__%s" % name, factoryElement.getInstance())
             for name, factoryElement in self._schema.attributes.iteritems():
-                setattr(self, name, factoryElement.getInstance())
+                setattr(self, "__%s" % name, factoryElement.getInstance())
             
             if __init:
                 __init(self, *args, **kargs)
                 
         classDict['__init__'] = init
         
+        def get_att(self, name):
+            return getattr(self, "__%s" % name)
+            
+        for name in toinit.keys():
+            classDict[name] = property(functools.partial(get_att, name=name))
         #setting the schema
         baseschemas = []
         for base in bases:
