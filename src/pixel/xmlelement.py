@@ -30,11 +30,8 @@ class element(object):
         return self.__t
     
     def getInstance(self, *args, **kargs):
-        if self.primitive:
-            return PrimitiveXmlElement(self.type)
-        else:
-            return self.type(*args, **kargs)
-
+        return self.type(*args, **kargs)
+        
 class attribute(element):
     def __init__(self, t, optional=False):
         element.__init__(self, t, optional)
@@ -84,13 +81,16 @@ class Schema(object):
     
     def toxml(self, obj, elname=None):
         elname = elname if elname else self.classname.lower()
-        s = "<%s%s>" % (elname, "".join([' %s="%s"' % (att, getattr(obj, att).value) for att in self.attributes.keys()]) if self.elements else "")
-        for elementName, element in self.elements.iteritems():
+        s = "<%s%s>" % (elname, "".join([' %s="%s"' % (att, getattr(obj, att)) for att in self.attributes.keys()]) if self.elements else "")
+        for elementName, elm in self.elements.iteritems():
             if not hasattr(obj, elementName):
                 raise SchemaError("Object doesn't have attribute '%s'" % elementName);
             
             elval = getattr(obj, elementName)
-            s += elval.__str__(elementName)
+            if elm.primitive:
+                s += "<%(elname)s>%(elval)s</%(elname)s>" % {'elname': elementName, 'elval': elval}
+            else:
+                s += elval.__str__(elementName)
         s += "</%s>" % elname
         return s
 
@@ -160,9 +160,18 @@ class XmlElementMeta(type):
         
         def get_att(self, name):
             return getattr(self, "__%s" % name)
-            
-        for name in toinit.keys():
-            classDict[name] = property(functools.partial(get_att, name=name))
+        
+        #reversed for functools to work as expected later.
+        def set_att(t, name, self, value):
+            setattr(self, "__%s" % name, t(value))
+                    
+        for name, elm in toinit.iteritems():
+            if elm.primitive:
+                #set_attr = lambda self, value, name: setattr(self, name, value)
+                classDict[name] = property(functools.partial(get_att, name=name),
+                    functools.partial(set_att, elm.type, name))
+            else:
+                classDict[name] = property(functools.partial(get_att, name=name))
         #setting the schema
         baseschemas = []
         for base in bases:
@@ -177,22 +186,3 @@ class XmlElement(object):
 
     def __str__(self, elementName=None):
         return self._schema.toxml(self, elementName)
-
-class PrimitiveXmlElement(XmlElement):
-    def __init__(self, t, *args):
-        self.__type = t
-        self.__value = t(*args)
-    
-    @property
-    def type(self):
-        return self.__type
-    
-    def __getValue(self):
-        return self.__value
-    def __setValue(self, v):
-        self.__value = self.__type(v)
-    
-    value = property(__getValue, __setValue)
-    
-    def __str__(self, elementName):
-        return "<%(elname)s>%(elvalue)s</%(elname)s>" % {'elname': elementName, 'elvalue': self.value}
