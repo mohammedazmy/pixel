@@ -1,7 +1,7 @@
 '''
 Created on Mar 15, 2010
 
-@author: mazmi
+@author: Mohamed Azmy
 '''
 
 class SchemaError(Exception):

@@ -81,14 +81,14 @@ class Schema(object):
     
     def toxml(self, obj, elname=None):
         elname = elname if elname else self.classname.lower()
-        s = "<%s%s>" % (elname, "".join([' %s="%s"' % (att, getattr(obj, att)) for att in self.attributes.keys()]) if self.elements else "")
+        s = "<%s%s>" % (elname, "".join([' %s="%s"' % (att, getattr(obj, att)) for att in self.attributes.keys()]))
         for elementName, elm in self.elements.iteritems():
             if not hasattr(obj, elementName):
                 raise SchemaError("Object doesn't have attribute '%s'" % elementName);
             
             elval = getattr(obj, elementName)
             if elm.primitive:
-                s += "<%(elname)s>%(elval)s</%(elname)s>" % {'elname': elementName, 'elval': elval}
+                s += "<%(name)s>%(elval)s</%(name)s>" % {'name': elementName, 'elval': elval}
             else:
                 s += elval.__str__(elementName)
         s += "</%s>" % elname

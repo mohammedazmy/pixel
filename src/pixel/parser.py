@@ -1,7 +1,7 @@
 '''
 Created on Mar 15, 2010
 
-@author: mazmi
+@author: Mohamed Azmy
 '''
 from xml import sax
 from errors import SchemaError, XmlLoadError
@@ -12,7 +12,7 @@ class PixelHandler(sax.ContentHandler):
     class PrimitiveDataHolder(object):
         def __init__(self, name):
             self.name = name
-            self.data = None
+            self.data = ''
         
     def __init__(self, ptype):
         sax.ContentHandler.__init__(self)
@@ -67,7 +67,7 @@ class PixelHandler(sax.ContentHandler):
         obj = self.stack.pop()
         if self.characterMode:
             parent = self.stack[len(self.stack) - 1]
-            setattr(parent, obj.name, obj.value)
+            setattr(parent, obj.name, obj.data)
             self.characterMode = False
             
     def startDocument(self):
@@ -79,10 +79,10 @@ class PixelHandler(sax.ContentHandler):
         pass
     
     def characters(self, data):
-        obj = self.stack[len(self.stack) - 1]
         #dirty
         if self.characterMode:
-            obj.value = data
+            obj = self.stack[len(self.stack) - 1]
+            obj.data += data
     
 class XmlReader(object):
     def __init__(self, ptype):
