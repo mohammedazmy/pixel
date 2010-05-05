@@ -1,4 +1,15 @@
+Pixel
 
+Pixel is another XML framework used to integrate XML into your projects
+it drops the need to load your XML structure into DOM objects and then 
+populate your real entities.
+
+The framework was designed with ease of use in mind so you can get started
+as fast as possible. It's also designed to validate the loaded data to 
+match your defined schema (as defined in your structures) using 
+attribute, element and/or collection 
+
+Usually your structure will look like something like that:
 from pixel.xmlelement import XmlElement, element, collection, attribute
 import pixel.parser
 
