@@ -7,13 +7,13 @@ class Header(XmlElement):
     value = attribute(str)
     
 class Body(XmlElement):
-    title = element(str)
+    title = element(str, True) #optional element
     text = element(str)
     
 class Message(XmlElement):
     source = attribute(str)
     destination = attribute(str)
-    id = attribute(int)
+    id = attribute(int, True) #optional attribute.
     headers = collection(Header)
     body = element(Body)
     

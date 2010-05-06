@@ -13,6 +13,10 @@ class PixelHandler(sax.ContentHandler):
         def __init__(self, name):
             self.name = name
             self.data = ''
+    
+    class Status(object):
+        def __init__(self):
+            self.populated = []
         
     def __init__(self, ptype):
         sax.ContentHandler.__init__(self)
@@ -34,7 +38,7 @@ class PixelHandler(sax.ContentHandler):
             obj = self.ptype()
             self.obj = obj
         else:
-            parent = self.stack[len(self.stack) - 1] # last object
+            parent, status = self.stack[len(self.stack) - 1] # last object
             #TODO: Very dirty using hardcoded names
             
             if parent._schema.classname == "TypedList":
@@ -51,24 +55,40 @@ class PixelHandler(sax.ContentHandler):
                     obj = self.PrimitiveDataHolder(name)
                 else:
                     obj = getattr(parent, name)
+                
+                status.populated.append(name)
 
         if not primitive:
+            attr_names = attrs.keys()
             for attr_name, attr_element in obj._schema.attributes.iteritems():
-                if not attr_element.optional and attr_name not in attrs:
+                if attr_element.optional and attr_name not in attrs:
+                    continue
+                elif attr_name not in attrs:
                     raise XmlLoadError("Missing required attribute '%s' on element '%s'" % (attr_name, name))
+                    
                 attr_val = attrs[attr_name]
+                attr_names.remove(attr_name)
                 if not hasattr(obj, attr_name):
                     raise SchemaError("Object of type '%s' doesn't have attribute '%s'" % (type(obj), attr_name))
                 setattr(obj, attr_name, attr_val)
-            
-        self.stack.append(obj)
+            if attr_names:
+                raise XmlLoadError("Found attributes '%s' which are not defined in the schema of elemenmt '%s'" % (", ".join(attr_names), name))
+                
+        self.stack.append((obj, self.Status()))
     
     def endElement(self, name):
-        obj = self.stack.pop()
+        obj, status = self.stack.pop()
         if self.characterMode:
-            parent = self.stack[len(self.stack) - 1]
+            parent = self.stack[len(self.stack) - 1][0]
             setattr(parent, obj.name, obj.data)
             self.characterMode = False
+        else:
+            #validate ended object.
+            #Make sure that all (not optional) sub objects has been found there.
+            for sub, elm in obj._schema.elements.iteritems():
+                if sub not in status.populated and not elm.optional:
+                    raise XmlLoadError("Opject '%s' requires subobject '%s'" % (name, sub))
+                
             
     def startDocument(self):
         self.reset()
@@ -81,7 +101,7 @@ class PixelHandler(sax.ContentHandler):
     def characters(self, data):
         #dirty
         if self.characterMode:
-            obj = self.stack[len(self.stack) - 1]
+            obj, status = self.stack[len(self.stack) - 1]
             obj.data += data
     
 class XmlReader(object):
