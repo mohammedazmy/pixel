@@ -11,26 +11,26 @@ attribute, element and/or collection
 
 Usually your structure will look like something like that:
 from pixel.xmlelement import XmlElement, element, collection, attribute
-import pixel.parser
+import pixel.loader
 
 class Header(XmlElement):
     key = attribute(str)
     value = attribute(str)
     
 class Body(XmlElement):
-    title = element(str)
+    title = element(str, True) #optional element
     text = element(str)
     
 class Message(XmlElement):
     source = attribute(str)
     destination = attribute(str)
-    id = attribute(int)
+    id = attribute(int, True) #optional attribute.
     headers = collection(Header)
     body = element(Body)
     
     def send(self):
         print "Sendig message to %s" % self.destination
-        
+
 def main():
     message = Message()
     message.source = 'source@mail.com'
@@ -55,8 +55,8 @@ def main():
     print xml
     #load message from xml
     
-    reader = pixel.parser.XmlReader(Message)
-    loaded_message = reader.parse(xml)
+    loader = pixel.loader.PixelLoader(Message)
+    loaded_message = loader.load(xml)
     
     print "--- The loaded message object xml ---"
     print str(loaded_message)

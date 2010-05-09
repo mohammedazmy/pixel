@@ -1,6 +1,6 @@
 
 from pixel.xmlelement import XmlElement, element, collection, attribute
-import pixel.parser
+import pixel.loader
 
 class Header(XmlElement):
     key = attribute(str)
@@ -19,7 +19,7 @@ class Message(XmlElement):
     
     def send(self):
         print "Sendig message to %s" % self.destination
-        
+
 def main():
     message = Message()
     message.source = 'source@mail.com'
@@ -44,8 +44,8 @@ def main():
     print xml
     #load message from xml
     
-    reader = pixel.parser.XmlReader(Message)
-    loaded_message = reader.parse(xml)
+    loader = pixel.loader.PixelLoader(Message)
+    loaded_message = loader.load(xml)
     
     print "--- The loaded message object xml ---"
     print str(loaded_message)

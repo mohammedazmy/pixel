@@ -101,10 +101,10 @@ class PixelHandler(sax.ContentHandler):
     def characters(self, data):
         #dirty
         if self.characterMode:
-            obj, status = self.stack[len(self.stack) - 1]
+            obj, _ = self.stack[len(self.stack) - 1]
             obj.data += data
     
-class XmlReader(object):
+class PixelLoader(object):
     def __init__(self, ptype):
         
         """
@@ -112,7 +112,7 @@ class XmlReader(object):
         """
         self._ptype = ptype
     
-    def parse(self, source):
+    def load(self, source):
         handler = PixelHandler(self._ptype)
         sax.parseString(source, handler)
         return handler.obj
