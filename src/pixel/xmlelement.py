@@ -5,8 +5,11 @@ Created on Mar 15, 2010
 '''
 from errors import SchemaError
 import functools
+import collections
 
 _BASETYPES = [str, int, float]
+
+namespace = collections.defaultdict(dict)
 
 class element(object):
     def __init__(self, t, optional=False):
@@ -49,7 +52,8 @@ class collection(element):
         return TypedList(self.type)
 
 class Schema(object):
-    def __init__(self, classname, baseschemas=(), **args):
+    def __init__(self, namespace, classname, baseschemas=(), **args):
+        self.__namespace = namespace
         self.__classname = classname
         self.__attrs = {}
         self.__elements = {}
@@ -66,6 +70,10 @@ class Schema(object):
                 self.__attrs[k] = v
             else:
                 self.__elements[k] = v
+    
+    @property
+    def namespace(self):
+        return self.__namespace
     
     @property
     def attributes(self):
@@ -96,7 +104,7 @@ class Schema(object):
 
 class TypedListSchema(Schema):
     def __init__(self):
-        Schema.__init__(self, "TypedList", [])
+        Schema.__init__(self, "", "TypedList", [])
     
     def toxml(self, obj, elname):
         if not isinstance(obj, TypedList):
@@ -112,12 +120,32 @@ class TypedList(list):
     _schema = TypedListSchema()
     
     def __init__(self, t):
+        if not isinstance(t, XmlElementMeta):
+            raise SchemaError("Only XmlElement types are supported")
+        
         list.__init__(self)
-        self.__t = t
+        self.__t = t 
+    
+    @property
+    def namespace(self):
+        return self.__t._schema.namespace
     
     @property
     def type(self):
         return self.__t
+    
+    def getType(self, tag=None):
+        if not tag:
+            return self.type
+        else:
+            ns = namespace[self.namespace]
+            if tag.lower() not in ns:
+                raise SchemaError("Type '%s' not found in namespace '%s'" % (tag, namespace))
+            t = ns[tag.lower()]
+            if self.type not in t.mro():
+                raise SchemaError("Type '%s' is not a child of type '%s'" % (tag, self.type.__name__))
+            
+            return t
     
     def append(self, obj):
         if not isinstance(obj, self.type):
@@ -144,6 +172,8 @@ class XmlElementMeta(type):
         __init = None        
         if '__init__' in classDict:
             __init = classDict['__init__']
+        
+        ns = classDict['__ns__'] if '__ns__' in classDict else ''
         
         #setting the __init__ method to intialize memebers.    
         def init(self, *args, **kargs):
@@ -177,9 +207,13 @@ class XmlElementMeta(type):
         for base in bases:
             if isinstance(base, XmlElementMeta):
                 baseschemas.append(base._schema)
+                if not ns and base._schema.namespace:
+                    ns = base._schema.namespace #inherit the namespace, if not defined.
         
-        classDict['_schema'] = Schema(classname, baseschemas, **toinit)
-        return type.__new__(cls, classname, bases, classDict)
+        classDict['_schema'] = Schema(ns, classname, baseschemas, **toinit)
+        clazz = type.__new__(cls, classname, bases, classDict)
+        namespace[ns][classname.lower()] = clazz
+        return clazz
 
 class XmlElement(object):
     __metaclass__ = XmlElementMeta
