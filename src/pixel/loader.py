@@ -5,7 +5,7 @@ Created on Mar 15, 2010
 '''
 from xml import sax
 from errors import SchemaError, XmlLoadError
-from xmlelement import XmlElement
+from xmlelement import XmlElement, TypedList
 
 
 class PixelHandler(sax.ContentHandler):
@@ -39,10 +39,9 @@ class PixelHandler(sax.ContentHandler):
             self.obj = obj
         else:
             parent, status = self.stack[len(self.stack) - 1] # last object
-            #TODO: Very dirty using hardcoded names
             
-            if parent._schema.classname == "TypedList":
-                obj = parent.type() #create a new object of the list type
+            if isinstance(parent, TypedList):
+                obj = parent.getType(name)() #create a new object of the list type
                 parent.append(obj)
             else:
                 if name not in parent._schema.elements:
