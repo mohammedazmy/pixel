@@ -9,7 +9,11 @@ as fast as possible. It's also designed to validate the loaded data to
 match your defined schema (as defined in your structures) using 
 attribute, element and/or collection 
 
+*NOTE: Please refer to the main.py file for more up to date example.
+
 Usually your structure will look like something like that:
+
+
 from pixel.xmlelement import XmlElement, element, collection, attribute
 import pixel.loader
 

@@ -58,7 +58,7 @@ def main():
     #load message from xml
     
     loader = pixel.loader.PixelLoader(Message)
-    loaded_message = loader.load(xml)
+    loaded_message = loader.loadString(xml)
     
     print "--- The loaded message object xml ---"
     print str(loaded_message)

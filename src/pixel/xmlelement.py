@@ -6,10 +6,14 @@ Created on Mar 15, 2010
 from errors import SchemaError
 import functools
 import collections
+import os
 
 _BASETYPES = [str, int, float]
 
 namespace = collections.defaultdict(dict)
+
+def indent(string, tab="    "):
+    return (tab + string.replace(os.linesep, "%s%s" % (os.linesep, tab))).rstrip(tab)
 
 class element(object):
     def __init__(self, t, optional=False):
@@ -91,19 +95,19 @@ class Schema(object):
         elname = elname if elname else self.classname.lower()
         s = "<%s%s" % (elname, "".join([' %s="%s"' % (att, getattr(obj, att)) for att in self.attributes.keys()]))
         if self.elements:
-            s += ">"
+            s += ">%s" % os.linesep
             for elementName, elm in self.elements.iteritems():
                 if not hasattr(obj, elementName):
                     raise SchemaError("Object doesn't have attribute '%s'" % elementName);
                 
                 elval = getattr(obj, elementName)
                 if elm.primitive:
-                    s += "<%(name)s>%(elval)s</%(name)s>" % {'name': elementName, 'elval': elval}
+                    s += indent("<%(name)s>%(elval)s</%(name)s>" % {'name': elementName, 'elval': elval}) + os.linesep
                 else:
-                    s += elval.__str__(elementName)
-            s += "</%s>" % elname
+                    s += indent(elval.__str__(elementName))
+            s += "</%s>%s" % (elname, os.linesep)
         else:
-            s += "/>"
+            s += "/>%s" % os.linesep
         return s
 
 class TypedListSchema(Schema):
@@ -114,10 +118,10 @@ class TypedListSchema(Schema):
         if not isinstance(obj, TypedList):
             raise SchemaError("Object not of type 'TypedList'")
         
-        s = "<%s>" % elname
+        s = "<%s>%s" % (elname, os.linesep)
         for e in obj:
-            s += e._schema.toxml(e) 
-        s += "</%s>" % elname
+            s += indent(e._schema.toxml(e)) 
+        s += "</%s>%s" % (elname, os.linesep)
         return s
         
 class TypedList(list):

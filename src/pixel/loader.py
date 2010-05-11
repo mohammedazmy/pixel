@@ -104,15 +104,36 @@ class PixelHandler(sax.ContentHandler):
             obj.data += data
     
 class PixelLoader(object):
-    def __init__(self, ptype):
+    def __init__(self, xmltype):
         
         """
         @param ptype: The parent type of the document. 
         """
-        self._ptype = ptype
+        self.__xmltype = xmltype
+    
+    @property
+    def xmlType(self):
+        return self.__xmltype
     
     def load(self, source):
-        handler = PixelHandler(self._ptype)
-        sax.parseString(source, handler)
+        """
+        Loads the entire xml from source returning an object
+        of type xmlType.
+        
+        @param source: file path or stream
+        """
+        handler = PixelHandler(self.xmlType)
+        sax.parse(source, handler)
+        return handler.obj
+    
+    def loadString(self, string):
+        """
+        Loads the entire xml from string returning an object
+        of type xmlType.
+        
+        @param string: string
+        """
+        handler = PixelHandler(self.xmlType)
+        sax.parseString(string, handler)
         return handler.obj
     
