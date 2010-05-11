@@ -5,7 +5,7 @@ Created on Mar 15, 2010
 '''
 from xml import sax
 from errors import SchemaError, XmlLoadError
-from xmlelement import XmlElement, TypedList
+from xmlelement import XmlElement, TypedList, innertext
 
 
 class PixelHandler(sax.ContentHandler):
@@ -85,6 +85,8 @@ class PixelHandler(sax.ContentHandler):
             #validate ended object.
             #Make sure that all (not optional) sub objects has been found there.
             for sub, elm in obj._schema.elements.iteritems():
+                if isinstance(elm, innertext):
+                    continue
                 if sub not in status.populated and not elm.optional:
                     raise XmlLoadError("Opject '%s' requires subobject '%s'" % (name, sub))
                 
@@ -99,9 +101,13 @@ class PixelHandler(sax.ContentHandler):
     
     def characters(self, data):
         #dirty
+        obj, _ = self.stack[len(self.stack) - 1]
         if self.characterMode:
-            obj, _ = self.stack[len(self.stack) - 1]
             obj.data += data
+        elif obj._schema.hasInnerText:
+            attr, elem = obj._schema.elements.items()[0]
+            setattr(obj, attr, getattr(obj, attr) + data)
+            
     
 class PixelLoader(object):
     def __init__(self, xmltype):

@@ -46,14 +46,18 @@ class attribute(element):
             raise SchemaError("Attributes must be a str, int or float")
 
 class collection(element):
-    def __init__(self, t):
+    def __init__(self, t, optional=False):
         if not isinstance(t, XmlElementMeta):
             raise SchemaError("Expecting an XmlElement")
         
-        element.__init__(self, t)
+        element.__init__(self, t, optional)
     
     def getInstance(self,*args, **kargs):
         return TypedList(self.type)
+
+class innertext(element):
+    def __init__(self, optional=False):
+        element.__init__(self, str, optional)
 
 class Schema(object):
     def __init__(self, namespace, classname, baseschemas=(), **args):
@@ -74,6 +78,15 @@ class Schema(object):
                 self.__attrs[k] = v
             else:
                 self.__elements[k] = v
+        #validate elements types.
+        #if this object has innertext set, no other elements should present.
+        for elm in self.__elements.values():
+            if isinstance(elm, innertext) and len(self.__elements) > 1:
+                raise SchemaError("No other elements should present with innertext")
+        
+    @property
+    def hasInnerText(self):
+        return len(self.elements) == 1 and isinstance(self.elements.values()[0], innertext)
     
     @property
     def namespace(self):
@@ -95,16 +108,21 @@ class Schema(object):
         elname = elname if elname else self.classname.lower()
         s = "<%s%s" % (elname, "".join([' %s="%s"' % (att, getattr(obj, att)) for att in self.attributes.keys()]))
         if self.elements:
-            s += ">%s" % os.linesep
-            for elementName, elm in self.elements.iteritems():
-                if not hasattr(obj, elementName):
-                    raise SchemaError("Object doesn't have attribute '%s'" % elementName);
-                
-                elval = getattr(obj, elementName)
-                if elm.primitive:
-                    s += indent("<%(name)s>%(elval)s</%(name)s>" % {'name': elementName, 'elval': elval}) + os.linesep
-                else:
-                    s += indent(elval.__str__(elementName))
+            if self.hasInnerText:
+                elementName, _ = self.elements.items()[0]
+                s += ">%s" % getattr(obj, elementName)
+            else:
+                s += ">%s" % os.linesep
+                for elementName, elm in self.elements.iteritems():
+                    if not hasattr(obj, elementName):
+                        raise SchemaError("Object doesn't have attribute '%s'" % elementName);
+                    
+                    elval = getattr(obj, elementName)
+                    if elm.primitive:
+                        s += indent("<%(name)s>%(elval)s</%(name)s>" % {'name': elementName, 'elval': elval}) + os.linesep
+                    else:
+                        s += indent(elval.__str__(elementName))
+                    
             s += "</%s>%s" % (elname, os.linesep)
         else:
             s += "/>%s" % os.linesep

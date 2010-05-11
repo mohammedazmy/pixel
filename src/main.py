@@ -1,11 +1,11 @@
 
-from pixel.xmlelement import XmlElement, element, collection, attribute
+from pixel.xmlelement import XmlElement, element, collection, attribute, innertext
 import pixel.loader
     
 class Header(XmlElement):
     __ns__ = "http://www.thebetechnology.com/message"
     key = attribute(str)
-    value = attribute(str)
+    value = innertext(str)
     
 class Body(XmlElement):
     __ns__ = "http://www.thebetechnology.com/message"
@@ -17,15 +17,12 @@ class Message(XmlElement):
     source = attribute(str)
     destination = attribute(str)
     id = attribute(int, True) #optional attribute.
-    headers = collection(Header)
+    headers = collection(Header, optional=True)
     body = element(Body)
     
     def send(self):
         print "Sendig message to %s" % self.destination
 
-class ComplexHeader(Header):
-    flags = collection(Header)
-    
 def main():
     message = Message()
     message.source = 'source@mail.com'
@@ -41,16 +38,9 @@ def main():
     header2 = Header()
     header2.key = 'priority'
     header2.value = 'HIGH'
-    
-    compHeader = ComplexHeader()
-    compHeader.key = 'complex'
-    compHeader.value = 'SUB-HEADER'
-    compHeader.flags.append(header1)
-    compHeader.flags.append(header2)
-    
+
     message.headers.append(header1)
     message.headers.append(header2)
-    message.headers.append(compHeader)
     
     xml = str(message)
     print "--- The orignial message object xml ---"
