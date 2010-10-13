@@ -337,6 +337,9 @@ class XmlListElement(object):
     def __iter__(self):
         for e in self._items:
             yield e
+    
+    def __len__(self):
+        return len(self._items)
         
     def __str__(self, elementName=None):
         elementName

@@ -11,13 +11,16 @@ class Body(XmlElement):
     __ns__ = "http://www.thebetechnology.com/message"
     title = element(str, True) #optional element
     text = element(str)
+
+class Headers(XmlListElement):
+    __type__ = Header
     
 class Message(XmlElement):
     __ns__ = "http://www.thebetechnology.com/message"
     source = attribute(str)
     destination = attribute(str)
     id = attribute(int, True) #optional attribute.
-    headers = collection(Header, optional=True)
+    headers = element(Headers, optional=True)
     body = element(Body)
     status = attribute(str)
     
@@ -72,7 +75,7 @@ def main():
         print "Message:-------"
         m.status = 'READ'
         print m
-        
+    return loaded_inbox
     #print "--- doing some actions ---"
     #loaded_.send()
     
