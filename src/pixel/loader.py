@@ -5,7 +5,7 @@ Created on Mar 15, 2010
 '''
 from xml import sax
 from errors import SchemaError, XmlLoadError
-from xmlelement import XmlElement, TypedList, innertext
+from xmlelement import XmlElement, XmlListElement, TypedList, XmlListElement, innertext
 
 
 class PixelHandler(sax.ContentHandler):
@@ -20,8 +20,9 @@ class PixelHandler(sax.ContentHandler):
         
     def __init__(self, ptype):
         sax.ContentHandler.__init__(self)
-        if XmlElement not in ptype.mro():
-            raise RuntimeError("ptype must be an XmlElement type")
+        parents = ptype.mro()
+        if XmlElement not in parents and XmlListElement not in parents:
+            raise RuntimeError("ptype must be an XmlElement or XmlListElement types")
         self.ptype = ptype
         self.reset()
     
@@ -40,7 +41,7 @@ class PixelHandler(sax.ContentHandler):
         else:
             parent, status = self.stack[len(self.stack) - 1] # last object
             
-            if isinstance(parent, TypedList):
+            if isinstance(parent, (TypedList, XmlListElement)):
                 obj = parent.getType(name)() #create a new object of the list type
                 parent.append(obj)
             else:

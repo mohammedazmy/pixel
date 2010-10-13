@@ -129,21 +129,21 @@ class Schema(object):
         return s
 
 class TypedListSchema(Schema):
-    def __init__(self):
-        Schema.__init__(self, "", "TypedList", [])
+    #def __init__(self, namespace="", classname, baseschemas, **args):
+    #    Schema.__init__(self, "", "TypedList", [])
     
-    def toxml(self, obj, elname):
-        if not isinstance(obj, TypedList):
-            raise SchemaError("Object not of type 'TypedList'")
-        
-        s = "<%s>%s" % (elname, os.linesep)
+    def toxml(self, obj, elname=None):
+        #if not isinstance(obj, TypedList):
+        #    raise SchemaError("Object not of type 'TypedList'")
+        elname = elname if elname else self.classname.lower()
+        s = "<%s%s>%s" % (elname, "".join([' %s="%s"' % (att, getattr(obj, att)) for att in self.attributes.keys()]), os.linesep)
         for e in obj:
             s += indent(e._schema.toxml(e)) 
         s += "</%s>%s" % (elname, os.linesep)
         return s
         
 class TypedList(list):
-    _schema = TypedListSchema()
+    _schema = TypedListSchema("", "TypedList", ())
     
     def __init__(self, t):
         if not isinstance(t, XmlElementMeta):
@@ -172,7 +172,12 @@ class TypedList(list):
                 raise SchemaError("Type '%s' is not a child of type '%s'" % (tag, self.type.__name__))
             
             return t
-    
+            
+    def __setitme__(self, key, value):
+        if not isinstance(obj, self.type):
+            raise RuntimeError("Invalid type, expecting '%s'" % self.type)
+        list[key] = value
+        
     def append(self, obj):
         if not isinstance(obj, self.type):
             raise RuntimeError("Invalid type, expecting '%s'" % self.type)
@@ -241,8 +246,98 @@ class XmlElementMeta(type):
         namespace[ns][classname.lower()] = clazz
         return clazz
 
+class XmlListElementMeta(type):
+    def __new__(cls, classname, bases, classDict):
+        if "__type__" not in classDict:
+            raise SchemaError("Missing __type__ declaration")
+        
+        listType = classDict["__type__"]
+        if not isinstance(listType, (XmlElementMeta, XmlListElementMeta)):
+            raise SchemaError("__type__ should be XmlElement of XmlListElement")
+        
+        toinit = {}
+        for name in classDict.keys():
+            value = classDict[name]
+            if isinstance(value, attribute):
+                del classDict[name]
+                toinit[name] = value
+            elif isinstance(value, attribute):
+                raise SchemaError("List Elements supports attributes only")
+                
+        __init = None        
+        if '__init__' in classDict:
+            __init = classDict['__init__']
+        
+        ns = classDict['__ns__'] if '__ns__' in classDict else ''
+        
+        #setting the __init__ method to intialize memebers.    
+        def init(self, *args, **kargs):
+            """overrides the default class init funcion"""
+            for name, factoryElement in self._schema.attributes.iteritems():
+                setattr(self, "__%s" % name, factoryElement.getInstance())
+            self._items = TypedList(listType)
+            
+            if __init:
+                __init(self, *args, **kargs)
+            
+        classDict['__init__'] = init
+        
+        def get_att(self, name):
+            return getattr(self, "__%s" % name)
+        
+        #reversed for functools to work as expected later.
+        def set_att(t, name, self, value):
+            setattr(self, "__%s" % name, t(value))
+                    
+        for name, elm in toinit.iteritems():
+            if elm.primitive:
+                #set_attr = lambda self, value, name: setattr(self, name, value)
+                classDict[name] = property(functools.partial(get_att, name=name),
+                    functools.partial(set_att, elm.type, name))
+            else:
+                classDict[name] = property(functools.partial(get_att, name=name))
+        #setting the schema
+        baseschemas = []
+        for base in bases:
+            if isinstance(base, XmlListElementMeta):
+                baseschemas.append(base._schema)
+                if not ns and base._schema.namespace:
+                    ns = base._schema.namespace #inherit the namespace, if not defined.
+        
+        classDict['_schema'] = TypedListSchema(ns, classname, baseschemas, **toinit)
+        clazz = type.__new__(cls, classname, bases, classDict)
+        namespace[ns][classname.lower()] = clazz
+        return clazz
+
 class XmlElement(object):
     __metaclass__ = XmlElementMeta
 
     def __str__(self, elementName=None):
+        return self._schema.toxml(self, elementName)
+
+class XmlListElement(object):
+    __metaclass__ = XmlListElementMeta
+    __type__ = XmlElement
+    
+    def getType(self, tag=None):
+        return self._items.getType(tag)
+        
+    def append(self, item):
+        self._items.append(item)
+    
+    def insert(self, i, item):
+        self._items.insert(i, item)
+        
+    def __setitme__(self, i, value):
+        self._items[i] = value
+    
+    def __getitem__(self, i):
+        return self._items[i]
+        
+    def __iter__(self):
+        for e in self._items:
+            yield e
+        
+    def __str__(self, elementName=None):
+        elementName
         return self._schema.toxml(self, elementName)
