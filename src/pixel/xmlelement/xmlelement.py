@@ -3,7 +3,7 @@ Created on Mar 15, 2010
 
 @author: Mohamed Azmy
 '''
-from errors import SchemaError
+from pixel.errors import SchemaError
 import functools
 import collections
 import os

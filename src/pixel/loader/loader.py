@@ -4,8 +4,8 @@ Created on Mar 15, 2010
 @author: Mohamed Azmy
 '''
 from xml import sax
-from errors import SchemaError, XmlLoadError
-from xmlelement import XmlElement, XmlListElement, TypedList, XmlListElement, innertext
+from pixel.errors import SchemaError, XmlLoadError
+from pixel.xmlelement import XmlElement, XmlListElement, TypedList, XmlListElement, innertext
 
 
 class PixelHandler(sax.ContentHandler):
