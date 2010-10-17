@@ -16,13 +16,21 @@ def indent(string, tab="    "):
     return (tab + string.replace(os.linesep, "%s%s" % (os.linesep, tab))).rstrip(tab)
 
 class element(object):
-    def __init__(self, t, optional=False):
+    def __init__(self, t, optional=False, default=None):
         if not isinstance(t, type):
             raise SchemaError("Expecting type")
         
         self.__t = t
         self.__optional = optional
         self.__primitive = t in _BASETYPES
+        self.__default = default
+        
+        if optional and not self.primitive and default:
+            raise SchemaError("Only optional/primitive elements can have defaults")
+    
+    @property
+    def default(self):
+        return self.__default
         
     @property
     def primitive(self):
@@ -40,24 +48,24 @@ class element(object):
         return self.type(*args, **kargs)
         
 class attribute(element):
-    def __init__(self, t, optional=False):
-        element.__init__(self, t, optional)
+    def __init__(self, t, **args):
+        element.__init__(self, t, **args)
         if not self.primitive:
             raise SchemaError("Attributes must be a str, int or float")
 
 class collection(element):
-    def __init__(self, t, optional=False):
-        if not isinstance(t, XmlElementMeta):
+    def __init__(self, t, **args):
+        if not isinstance(t, (XmlElementMeta, XmlListElementMeta)):
             raise SchemaError("Expecting an XmlElement")
         
-        element.__init__(self, t, optional)
+        element.__init__(self, t, **args)
     
     def getInstance(self,*args, **kargs):
         return TypedList(self.type)
 
 class innertext(element):
-    def __init__(self, optional=False):
-        element.__init__(self, str, optional)
+    def __init__(self, **args):
+        element.__init__(self, str, **args)
 
 class Schema(object):
     def __init__(self, namespace, classname, baseschemas=(), **args):

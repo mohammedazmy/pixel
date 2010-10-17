@@ -61,13 +61,18 @@ class PixelHandler(sax.ContentHandler):
         if not primitive:
             attr_names = attrs.keys()
             for attr_name, attr_element in obj._schema.attributes.iteritems():
+                attr_val = None
                 if attr_element.optional and attr_name not in attrs:
-                    continue
+                    if attr_element.default != None:
+                        attr_val = attr_element.default
+                    else:
+                        continue
                 elif attr_name not in attrs:
                     raise XmlLoadError("Missing required attribute '%s' on element '%s'" % (attr_name, name))
                     
-                attr_val = attrs[attr_name]
-                attr_names.remove(attr_name)
+                attr_val = attr_val if attr_val else attrs[attr_name]
+                if attr_name in attr_names:
+                    attr_names.remove(attr_name)
                 if not hasattr(obj, attr_name):
                     raise SchemaError("Object of type '%s' doesn't have attribute '%s'" % (type(obj), attr_name))
                 setattr(obj, attr_name, attr_val)
@@ -88,8 +93,11 @@ class PixelHandler(sax.ContentHandler):
             for sub, elm in obj._schema.elements.iteritems():
                 if isinstance(elm, innertext):
                     continue
-                if sub not in status.populated and not elm.optional:
-                    raise XmlLoadError("Opject '%s' requires subobject '%s'" % (name, sub))
+                if sub not in status.populated:
+                    if elm.optional and elm.default != None:
+                        setattr(obj, sub, elm.default)
+                    elif not elm.optional:
+                        raise XmlLoadError("Opject '%s' requires subobject '%s'" % (name, sub))
                 
             
     def startDocument(self):
