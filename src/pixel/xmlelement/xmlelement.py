@@ -154,8 +154,8 @@ class TypedList(list):
     _schema = TypedListSchema("", "TypedList", ())
     
     def __init__(self, t):
-        if not isinstance(t, XmlElementMeta):
-            raise SchemaError("Only XmlElement types are supported")
+        if not isinstance(t, (XmlElementMeta, XmlListElementMeta)):
+            raise SchemaError("Only XmlElement/XmlListElement types are supported")
         
         list.__init__(self)
         self.__t = t 
