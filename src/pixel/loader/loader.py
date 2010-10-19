@@ -70,7 +70,7 @@ class PixelHandler(sax.ContentHandler):
                 elif attr_name not in attrs:
                     raise XmlLoadError("Missing required attribute '%s' on element '%s'" % (attr_name, name))
                     
-                attr_val = attr_val if attr_val else attrs[attr_name]
+                attr_val = attr_val if attr_val != None else attrs[attr_name]
                 if attr_name in attr_names:
                     attr_names.remove(attr_name)
                 if not hasattr(obj, attr_name):
