@@ -7,6 +7,7 @@ from pixel.errors import SchemaError
 import functools
 import collections
 import os
+import inspect
 
 _BASETYPES = [str, int, float]
 
@@ -16,7 +17,7 @@ def indent(string, tab="    "):
     return (tab + string.replace(os.linesep, "%s%s" % (os.linesep, tab))).rstrip(tab)
 
 class element(object):
-    def __init__(self, t, optional=False, default=None):
+    def __init__(self, t, optional=False, default=None, **kwargs):
         if not isinstance(t, type):
             raise SchemaError("Expecting type")
         
@@ -24,10 +25,17 @@ class element(object):
         self.__optional = optional
         self.__primitive = t in _BASETYPES
         self.__default = default
+        self.__kwargs = kwargs
         
         if optional and not self.primitive and default:
             raise SchemaError("Only optional/primitive elements can have defaults")
+        if kwargs and self.primitive:
+            raise SchemaError("Extra params can only be used with XmlElememt and XmlListElement types")
     
+    @property
+    def kwargs(self):
+        return self.__kwargs
+        
     @property
     def default(self):
         return self.__default
@@ -207,11 +215,15 @@ class XmlElementMeta(type):
             if isinstance(value, element):
                 del classDict[name]
                 toinit[name] = value
-            
-        __init = None        
-        if '__init__' in classDict:
-            __init = classDict['__init__']
         
+        if '__init__' in classDict:
+            raise SchemaError("__init__ is not supported for class %s, please use __xinit__ instead" % classname)
+        
+        if '__xinit__' in classDict:
+            xargs = inspect.getargspec(classDict['__xinit__'])
+            if len(xargs.args) - 1 != len(xargs.defaults if xargs.defaults else []): # -1 is to drop self from count
+                raise SchemaError("All params to __xinit__ should has default values in class %s" % classname)
+                
         ns = classDict['__ns__'] if '__ns__' in classDict else ''
         
         #setting the __init__ method to intialize memebers.    
@@ -222,9 +234,6 @@ class XmlElementMeta(type):
             for name, factoryElement in self._schema.attributes.iteritems():
                 setattr(self, "__%s" % name, factoryElement.getInstance())
             
-            if __init:
-                __init(self, *args, **kargs)
-                
         classDict['__init__'] = init
         
         def get_att(self, name):
@@ -272,9 +281,13 @@ class XmlListElementMeta(type):
             elif isinstance(value, attribute):
                 raise SchemaError("List Elements supports attributes only")
                 
-        __init = None        
         if '__init__' in classDict:
-            __init = classDict['__init__']
+            raise SchemaError("__init__ is not supported for class %s, please use __xinit__ instead" % classname)
+        
+        if '__xinit__' in classDict:
+            xargs = inspect.getargspec(classDict['__xinit__'])
+            if len(xargs.args) - 1 != len(xargs.defaults if xargs.defaults else []): # -1 is to drop self from count
+                raise SchemaError("All params to __xinit__ should has default values in class %s" % classname)
         
         ns = classDict['__ns__'] if '__ns__' in classDict else ''
         
@@ -285,8 +298,6 @@ class XmlListElementMeta(type):
                 setattr(self, "__%s" % name, factoryElement.getInstance())
             self._items = TypedList(listType)
             
-            if __init:
-                __init(self, *args, **kargs)
             
         classDict['__init__'] = init
         

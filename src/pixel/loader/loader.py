@@ -98,6 +98,11 @@ class PixelHandler(sax.ContentHandler):
                         setattr(obj, sub, elm.default)
                     elif not elm.optional:
                         raise XmlLoadError("Opject '%s' requires subobject '%s'" % (name, sub))
+                if not elm.primitive:
+                    subobj = getattr(obj, sub)
+                    if hasattr(subobj, '__xinit__') and callable(subobj.__xinit__):
+                        subobj.__xinit__(**elm.kwargs)
+                    
                 
             
     def startDocument(self):
