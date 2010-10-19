@@ -135,7 +135,12 @@ class PixelLoader(object):
     def xmlType(self):
         return self.__xmltype
     
-    def load(self, source):
+    def __initobj(self, obj, **kwargs):
+        if hasattr(obj, '__xinit__') and callable(obj.__xinit__):
+            obj.__xinit__(**kwargs)
+        return obj
+        
+    def load(self, source, **kwargs):
         """
         Loads the entire xml from source returning an object
         of type xmlType.
@@ -144,9 +149,10 @@ class PixelLoader(object):
         """
         handler = PixelHandler(self.xmlType)
         sax.parse(source, handler)
-        return handler.obj
     
-    def loadString(self, string):
+        return self.__initobj(handler.obj, **kwargs)
+    
+    def loadString(self, string, **kwargs):
         """
         Loads the entire xml from string returning an object
         of type xmlType.
@@ -155,5 +161,5 @@ class PixelLoader(object):
         """
         handler = PixelHandler(self.xmlType)
         sax.parseString(string, handler)
-        return handler.obj
+        return self.__initobj(handler.obj, **kwargs)
     
