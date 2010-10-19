@@ -103,7 +103,8 @@ class PixelHandler(sax.ContentHandler):
                     if hasattr(subobj, '__xinit__') and callable(subobj.__xinit__):
                         subobj.__xinit__(**elm.kwargs)
                     
-                
+            if isinstance(obj, (TypedList, XmlListElement)):
+                obj.__finalize__()
             
     def startDocument(self):
         self.reset()
@@ -136,6 +137,9 @@ class PixelLoader(object):
         return self.__xmltype
     
     def __initobj(self, obj, **kwargs):
+        if isinstance(obj, XmlListElement):
+            obj.__finalize__()
+            
         if hasattr(obj, '__xinit__') and callable(obj.__xinit__):
             obj.__xinit__(**kwargs)
         return obj

@@ -168,6 +168,11 @@ class TypedList(list):
         list.__init__(self)
         self.__t = t 
     
+    def __finalize__(self):
+        for i in self:
+            if hasattr(i, '__xinit__') and callable(i.__xinit__):
+                i.__xinit__()
+                
     @property
     def namespace(self):
         return self.__t._schema.namespace
@@ -182,7 +187,7 @@ class TypedList(list):
         else:
             ns = namespace[self.namespace]
             if tag.lower() not in ns:
-                raise SchemaError("Type '%s' not found in namespace '%s'" % (tag, namespace))
+                raise SchemaError("Type '%s' not found in namespace '%s'" % (tag, self.namespace))
             t = ns[tag.lower()]
             if self.type not in t.mro():
                 raise SchemaError("Type '%s' is not a child of type '%s'" % (tag, self.type.__name__))
@@ -338,6 +343,11 @@ class XmlListElement(object):
     __metaclass__ = XmlListElementMeta
     __type__ = XmlElement
     
+    def __finalize__(self):
+        for i in self:
+            if hasattr(i, '__xinit__') and callable(i.__xinit__):
+                i.__xinit__()
+        
     def getType(self, tag=None):
         return self._items.getType(tag)
         
